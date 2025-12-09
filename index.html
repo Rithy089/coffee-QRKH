@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Bakong Cafe – Smart QR Payment</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        background: linear-gradient(180deg, #f8f4f0, #f1ece7);
+        color: #222;
+      }
+
+      .container {
+        max-width: 1100px;
+        margin: auto;
+        padding: 18px;
+      }
+
+      h1 {
+        text-align: center;
+        margin-bottom: 6px;
+        font-size: 28px;
+      }
+
+      .subtitle {
+        text-align: center;
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 20px;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 1.4fr 1fr;
+        gap: 18px;
+      }
+
+      @media (max-width: 768px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .card {
+        background: white;
+        border-radius: 16px;
+        padding: 16px;
+        box-shadow: 0 10px 26px rgba(0, 0, 0, 0.07);
+      }
+
+      h2 {
+        margin: 0 0 12px;
+        font-size: 20px;
+      }
+
+      /* ===== MENU GRID ===== */
+      .menu-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+      }
+
+      .item-card {
+        border-radius: 14px;
+        background: #fafafa;
+        overflow: hidden;
+        display: flex;
+        gap: 10px;
+        padding: 10px;
+        border: 1px solid #eee;
+      }
+
+      .item-card img {
+        width: 70px;
+        height: 70px;
+        border-radius: 10px;
+        object-fit: cover;
+      }
+
+      .item-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .item-name {
+        font-weight: 600;
+        font-size: 14px;
+      }
+
+      .item-price {
+        font-size: 13px;
+        color: #666;
+      }
+
+      .qty-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: auto;
+      }
+
+      .qty-btn {
+        width: 26px;
+        height: 26px;
+        border-radius: 999px;
+        border: 1px solid #ccc;
+        background: white;
+        cursor: pointer;
+      }
+
+      .qty-value {
+        min-width: 18px;
+        text-align: center;
+        font-size: 14px;
+      }
+
+      /* ===== CART ===== */
+      .cart-line {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 6px;
+        font-size: 14px;
+      }
+
+      .cart-total {
+        font-weight: 700;
+        border-top: 1px dashed #ddd;
+        padding-top: 8px;
+        margin-top: 8px;
+      }
+
+      .actions {
+        margin-top: 12px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .btn-primary {
+        background: #2c2c2c;
+        color: white;
+        border-radius: 999px;
+        border: none;
+        padding: 8px 18px;
+        cursor: pointer;
+      }
+
+      .btn-secondary {
+        background: #eaeaea;
+        border-radius: 999px;
+        border: none;
+        padding: 8px 16px;
+        cursor: pointer;
+      }
+
+      /* ===== QR ===== */
+      .qr-box {
+        text-align: center;
+        margin-top: 6px;
+      }
+
+      .qr-box img {
+        width: 200px;
+        height: 200px;
+        border-radius: 12px;
+        border: 2px dashed #ccc;
+        padding: 8px;
+        background: #fafafa;
+      }
+
+      .pay-amount {
+        font-size: 20px;
+        font-weight: 700;
+        margin: 10px 0 6px;
+      }
+
+      .status {
+        font-size: 13px;
+        margin-top: 8px;
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 999px;
+      }
+
+      .pending {
+        background: #fff3cd;
+        color: #92400e;
+      }
+
+      .paid {
+        background: #dcfce7;
+        color: #027a48;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>☕ CVG Smart Cafe</h1>
+      <div class="subtitle">
+        Add items → Generate Bakong QR → Customer scans & pays
+      </div>
+
+      <div class="layout">
+        <!-- ================= LEFT: MENU ================= -->
+        <div class="card">
+          <h2>Menu</h2>
+          <div class="menu-grid" id="menuGrid"></div>
+
+          <h2 style="margin-top: 16px;">Cart</h2>
+          <div id="cart"></div>
+
+          <div class="actions">
+            <button class="btn-primary" onclick="generateKHQR()">
+              ⚡ Generate KHQR
+            </button>
+            <button class="btn-secondary" onclick="clearCart()">
+              🧹 Clear
+            </button>
+          </div>
+        </div>
+
+        <!-- ================= RIGHT: PAYMENT ================= -->
+        <div class="card">
+          <h2>Bakong Payment</h2>
+
+          <div id="paymentBox">
+            <p style="font-size: 13px; color: #666;">
+              Generate KHQR to show to customer
+            </p>
+          </div>
+
+          <div class="qr-box" id="qrBox" style="display: none;">
+            <div class="pay-amount" id="payAmount">$0.00</div>
+            <img id="qrImg" src="" />
+            <div class="status pending" id="payStatus">
+              ⏳ Waiting for payment...
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ================= CONFIG =================
+      const API_BASE = "http://localhost:4000"; // change to Render later
+
+      // ================= MENU DATA =================
+      const menu = [
+        {
+          id: 1,
+          name: "Iced Black Coffee",
+          price: 1.5,
+          img: "https://images.unsplash.com/photo-1511920170033-f8396924c348",
+        },
+        {
+          id: 2,
+          name: "Hot Latte",
+          price: 2.0,
+          img: "https://images.unsplash.com/photo-1509042239860-f550ce710b93",
+        },
+        {
+          id: 3,
+          name: "Milk Tea",
+          price: 2.3,
+          img: "https://images.unsplash.com/photo-1541167760496-1628856ab772",
+        },
+        {
+          id: 4,
+          name: "Lemon Tea",
+          price: 1.8,
+          img: "https://images.unsplash.com/photo-1556679343-c7306c1976bc",
+        },
+      ];
+
+      const cart = {};
+
+      const menuGrid = document.getElementById("menuGrid");
+      const cartEl = document.getElementById("cart");
+      const qrBox = document.getElementById("qrBox");
+      const qrImg = document.getElementById("qrImg");
+      const payAmount = document.getElementById("payAmount");
+      const payStatus = document.getElementById("payStatus");
+
+      let orderId = null;
+      let pollTimer = null;
+
+      // ================= RENDER MENU =================
+      function renderMenu() {
+        menuGrid.innerHTML = "";
+        menu.forEach((item) => {
+          menuGrid.innerHTML += `
+            <div class="item-card">
+              <img src="${item.img}" />
+              <div class="item-info">
+                <div class="item-name">${item.name}</div>
+                <div class="item-price">$${item.price.toFixed(2)}</div>
+                <div class="qty-controls">
+                  <button class="qty-btn" onclick="remove(${item.id})">−</button>
+                  <div class="qty-value">${cart[item.id] || 0}</div>
+                  <button class="qty-btn" onclick="add(${item.id})">+</button>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+      }
+
+      function add(id) {
+        cart[id] = (cart[id] || 0) + 1;
+        updateCart();
+      }
+
+      function remove(id) {
+        if (cart[id]) cart[id]--;
+        if (cart[id] <= 0) delete cart[id];
+        updateCart();
+      }
+
+      function updateCart() {
+        let total = 0;
+        cartEl.innerHTML = "";
+
+        Object.keys(cart).forEach((id) => {
+          const item = menu.find((m) => m.id == id);
+          const qty = cart[id];
+          const line = item.price * qty;
+          total += line;
+
+          cartEl.innerHTML += `
+            <div class="cart-line">
+              <span>${item.name} × ${qty}</span>
+              <span>$${line.toFixed(2)}</span>
+            </div>
+          `;
+        });
+
+        cartEl.innerHTML += `
+          <div class="cart-line cart-total">
+            <span>Total</span>
+            <span>$${total.toFixed(2)}</span>
+          </div>
+        `;
+
+        renderMenu();
+      }
+
+      function clearCart() {
+        for (let k in cart) delete cart[k];
+        updateCart();
+        qrBox.style.display = "none";
+      }
+
+      // ================= GENERATE KHQR =================
+      async function generateKHQR() {
+        let total = 0;
+        Object.keys(cart).forEach((id) => {
+          const item = menu.find((m) => m.id == id);
+          total += item.price * cart[id];
+        });
+
+        if (total <= 0) return alert("Cart empty");
+
+        const res = await fetch(`${API_BASE}/api/create-khqr`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ amount: total, currency: "USD" }),
+        });
+
+        const data = await res.json();
+        if (!data.ok) return alert("Failed to generate KHQR");
+
+        orderId = data.orderId;
+        qrImg.src = data.qrImage;
+        payAmount.innerText = `$${data.amount.toFixed(2)}`;
+        qrBox.style.display = "block";
+        payStatus.innerText = "⏳ Waiting for payment...";
+
+        clearInterval(pollTimer);
+        pollTimer = setInterval(checkPayment, 3000);
+      }
+
+      async function checkPayment() {
+        if (!orderId) return;
+
+        const res = await fetch(
+          `${API_BASE}/api/check-payment/${orderId}`
+        );
+        const data = await res.json();
+
+        if (data.status === "PAID") {
+          payStatus.innerText = "✅ Payment Paid";
+          payStatus.className = "status paid";
+          clearInterval(pollTimer);
+        }
+      }
+
+      renderMenu();
+      updateCart();
+    </script>
+  </body>
+</html>
