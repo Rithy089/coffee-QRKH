@@ -252,14 +252,14 @@
 
     <script>
       // ================= CONFIG =================
-      const API_BASE = "https://bakong-backend-s407.onrender.com"; // change to Render later
+      const API_BASE = "http://localhost:4000"; // change to Render later
 
       // ================= MENU DATA =================
       const menu = [
         {
           id: 1,
           name: "Iced Black Coffee",
-          price: 1.5,
+          price: 0.01,
           img: "https://images.unsplash.com/photo-1511920170033-f8396924c348",
         },
         {
@@ -357,6 +357,7 @@
       function clearCart() {
         for (let k in cart) delete cart[k];
         updateCart();
+        renderMenu(); 
         qrBox.style.display = "none";
       }
 
