@@ -1,31 +1,29 @@
+// server.js
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
 const QRCode = require("qrcode");
-const crypto = require("crypto");
-
-// ts-khqr library (might be ESM internally; if require fails, check its README)
-const tsKhqr = require("ts-khqr");
-const { KHQR, CURRENCY, COUNTRY, TAG } = tsKhqr;
+const { BakongKHQR, khqrData, IndividualInfo } = require("bakong-khqr");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+// ===== CONFIG FROM ENV =====
 const PORT = process.env.PORT || 4000;
-const BAKONG_BASE_URL = process.env.BAKONG_BASE_URL;
-const BAKONG_TOKEN = process.env.BAKONG_TOKEN;
-
-const BAKONG_ACCOUNT_ID = process.env.BAKONG_ACCOUNT_ID;
-const MERCHANT_NAME = process.env.MERCHANT_NAME || "My Cafe";
+const BAKONG_BASE_URL =
+  process.env.BAKONG_BASE_URL || "https://api-bakong.nbc.gov.kh";
+const BAKONG_TOKEN = process.env.BAKONG_TOKEN || ""; // can be empty for now
+const BAKONG_ACCOUNT_ID = process.env.BAKONG_ACCOUNT_ID || "";
+const MERCHANT_NAME = process.env.MERCHANT_NAME || "CVG Cafe";
 const MERCHANT_CITY = process.env.MERCHANT_CITY || "Phnom Penh";
 const DEFAULT_CURRENCY = (process.env.CURRENCY || "USD").toUpperCase();
 
-// Simple in-memory store: orderId -> {...}
-const orders = {};
+// ===== IN-MEMORY ORDER STORE =====
+const ORDERS = {}; // orderId -> { orderId, amount, currency, md5, qrString, status }
 
-// Helper: generate simple order id
+// ===== HELPERS =====
 function generateOrderId() {
   const now = new Date();
   const y = now.getFullYear();
@@ -34,122 +32,125 @@ function generateOrderId() {
   const hh = String(now.getHours()).padStart(2, "0");
   const mm = String(now.getMinutes()).padStart(2, "0");
   const ss = String(now.getSeconds()).padStart(2, "0");
-  const rand = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
+  const rand = Math.floor(Math.random() * 1000)
+    .toString()
+    .padStart(3, "0");
   return `CAFE-${y}${m}${d}${hh}${mm}${ss}-${rand}`;
 }
 
-/**
- * POST /api/create-khqr
- * Body: { amount: number, currency?: "USD" | "KHR" }
- * Creates dynamic KHQR for this order total.
- */
+// Simple health check
+app.get("/", (req, res) => {
+  res.send("Bakong backend running ✅");
+});
+
+// ===== 1) CREATE DYNAMIC KHQR =====
 app.post("/api/create-khqr", async (req, res) => {
   try {
-    const { amount, currency } = req.body;
+    let { amount, currency } = req.body;
 
+    amount = Number(amount || 0);
     if (!amount || amount <= 0) {
-      return res.status(400).json({ ok: false, error: "Invalid amount" });
-    }
-
-    const cur = (currency || DEFAULT_CURRENCY).toUpperCase();
-    if (!["USD", "KHR"].includes(cur)) {
       return res
         .status(400)
-        .json({ ok: false, error: "Currency must be USD or KHR" });
+        .json({ ok: false, error: "Invalid amount (must be > 0)" });
     }
 
     if (!BAKONG_ACCOUNT_ID || !BAKONG_ACCOUNT_ID.includes("@")) {
       return res.status(500).json({
         ok: false,
         error:
-          "BAKONG_ACCOUNT_ID is not set correctly in .env (e.g. myname@aclb)",
+          "BAKONG_ACCOUNT_ID is not set or invalid. Example: yourid@aclb in .env",
       });
     }
+
+    const currencyCode = (currency || DEFAULT_CURRENCY).toUpperCase();
+    const khqrCurrency =
+      currencyCode === "KHR" ? khqrData.currency.khr : khqrData.currency.usd;
 
     const orderId = generateOrderId();
 
-    // Amount rules:
-    //   - KHR: must be integer (no cents)
-    //   - USD: can have decimal
-    const khqrAmount = cur === "KHR" ? Math.round(amount) : Number(amount);
-
-    // Optional: expiration (10 minutes from now)
+    // Dynamic QR: expires in 10 minutes
     const expirationTimestamp = Date.now() + 10 * 60 * 1000;
 
-    // Build KHQR payload via ts-khqr
-    const khqrResult = KHQR.generate({
-      tag: TAG.INDIVIDUAL, // or TAG.MERCHANT, depending on your account type
-      accountID: BAKONG_ACCOUNT_ID,
-      merchantName: MERCHANT_NAME,
-      merchantCity: MERCHANT_CITY,
-      countryCode: COUNTRY.KH,
-      currency: cur === "USD" ? CURRENCY.USD : CURRENCY.KHR,
-      amount: khqrAmount,
+    const optionalData = {
+      currency: khqrCurrency,
+      amount: amount,
+      storeLabel: MERCHANT_NAME,
       merchantCategoryCode: "5999",
+      billNumber: orderId,
+      purposeOfTransaction: "Cafe order",
       expirationTimestamp,
-      additionalData: {
-        billNumber: orderId,
-        purposeOfTransaction: "Cafe order",
-      },
-    });
+    };
 
-    // Depending on ts-khqr version, data may be under .data.qr or .qr
-    const khqrString =
-      khqrResult?.data?.qr || khqrResult?.qr || khqrResult?.data || "";
+    const khqr = new BakongKHQR();
 
-    if (!khqrString) {
+    const individualInfo = new IndividualInfo(
+      BAKONG_ACCOUNT_ID, // e.g. yourid@aclb
+      khqrCurrency,
+      MERCHANT_NAME,
+      MERCHANT_CITY,
+      optionalData
+    );
+
+    const result = khqr.generateIndividual(individualInfo);
+
+    if (!result || result.status.code !== 0 || !result.data) {
+      console.error("KHQR generate error:", result);
       return res.status(500).json({
         ok: false,
-        error:
-          "Failed to generate KHQR string (check ts-khqr version / result shape)",
+        error: "Failed to generate KHQR",
       });
     }
 
-    // MD5 hash of KHQR string: used for Bakong /v1/check_transaction_by_md5
-    const md5 = crypto.createHash("md5").update(khqrString).digest("hex");
+    const qrString = result.data.qr; // EMV string
+    const md5 = result.data.md5; // md5 hash of qr data
 
-    // Generate QR image (PNG base64)
-    const qrPngDataUrl = await QRCode.toDataURL(khqrString);
+    // Convert QR string -> PNG data URL
+    const qrImage = await QRCode.toDataURL(qrString, {
+      width: 320,
+      margin: 2,
+    });
 
-    // Store order
-    orders[orderId] = {
+    // Store order in memory
+    ORDERS[orderId] = {
       orderId,
-      amount: khqrAmount,
-      currency: cur,
-      khqrString,
+      amount,
+      currency: currencyCode,
+      qrString,
       md5,
       status: "PENDING",
+      createdAt: new Date().toISOString(),
     };
 
     return res.json({
       ok: true,
       orderId,
-      amount: khqrAmount,
-      currency: cur,
-      qrString: khqrString,
+      amount,
+      currency: currencyCode,
+      qrString,
       md5,
-      qrImage: qrPngDataUrl,
+      qrImage,
     });
   } catch (err) {
-    console.error("create-khqr error", err);
-    return res.status(500).json({ ok: false, error: "Server error" });
+    console.error("create-khqr error:", err);
+    return res.status(500).json({
+      ok: false,
+      error: "Server error while creating KHQR",
+    });
   }
 });
 
-/**
- * GET /api/check-payment/:orderId
- * Uses stored MD5 to ask Bakong if this KHQR has been paid.
- */
+// ===== 2) CHECK PAYMENT STATUS =====
 app.get("/api/check-payment/:orderId", async (req, res) => {
   try {
     const { orderId } = req.params;
-    const order = orders[orderId];
+    const order = ORDERS[orderId];
 
     if (!order) {
       return res.status(404).json({ ok: false, error: "Order not found" });
     }
 
-    // If already marked PAID, no need to call Bakong again
+    // Already paid in memory
     if (order.status === "PAID") {
       return res.json({
         ok: true,
@@ -159,17 +160,17 @@ app.get("/api/check-payment/:orderId", async (req, res) => {
       });
     }
 
+    // If no token yet, we can't call Bakong – just keep it pending
     if (!BAKONG_TOKEN || BAKONG_TOKEN === "YOUR_BAKONG_API_TOKEN_HERE") {
-      // No real token yet -> just always PENDING
       return res.json({
         ok: true,
         status: "PENDING",
-        note: "BAKONG_TOKEN not set yet; backend is not checking real status.",
+        note: "BAKONG_TOKEN not set. Payment check is not active yet.",
       });
     }
 
     // Call Bakong /v1/check_transaction_by_md5
-    const response = await axios.post(
+    const resp = await axios.post(
       `${BAKONG_BASE_URL}/v1/check_transaction_by_md5`,
       { md5: order.md5 },
       {
@@ -180,17 +181,14 @@ app.get("/api/check-payment/:orderId", async (req, res) => {
       }
     );
 
-    const data = response.data;
+    const data = resp.data;
 
-    // NOTE: exact response shape depends on Bakong docs.
-    // Here we assume:
-    //  - responseCode === 0 => success
-    //  - data.amount, data.currency exist
-    if (data.responseCode === 0 && data.data) {
+    // Assuming Bakong response format:
+    // { responseCode: 0, data: { amount: "1.50", currency: "USD", ... } }
+    if (data && data.responseCode === 0 && data.data) {
       const paidAmount = Number(data.data.amount);
       const paidCurrency = data.data.currency;
 
-      // Basic validation: same amount + same currency
       if (
         paidCurrency === order.currency &&
         Math.abs(paidAmount - order.amount) < 0.0001
@@ -202,16 +200,22 @@ app.get("/api/check-payment/:orderId", async (req, res) => {
     return res.json({
       ok: true,
       status: order.status,
+      amount: order.amount,
+      currency: order.currency,
     });
   } catch (err) {
     console.error(
-      "check-payment error",
+      "check-payment error:",
       err.response?.data || err.message || err
     );
-    return res.status(500).json({ ok: false, error: "Check payment error" });
+    return res.status(500).json({
+      ok: false,
+      error: "Server error while checking payment",
+    });
   }
 });
 
+// ===== START SERVER =====
 app.listen(PORT, () => {
-  console.log(`Bakong backend listening on http://localhost:${PORT}`);
+  console.log(`Bakong backend listening on port ${PORT}`);
 });
