@@ -1,4 +1,3 @@
-// api/check-payment.js
 const axios = require("axios");
 
 module.exports = async function handler(req, res) {
@@ -23,7 +22,7 @@ module.exports = async function handler(req, res) {
       return res.json({
         ok: true,
         status: "PENDING",
-        note: "BAKONG_TOKEN not set; live payment check disabled",
+        note: "BAKONG_TOKEN not set; live payment check disabled"
       });
     }
 
@@ -33,21 +32,18 @@ module.exports = async function handler(req, res) {
       {
         headers: {
           Authorization: `Bearer ${BAKONG_TOKEN}`,
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
         },
-        timeout: 10000,
+        timeout: 10000
       }
     );
 
     const data = resp.data;
-
-    // Adjust logic based on Bakong response structure you get
     const paid = !!(data && data.responseCode === 0 && data.data);
 
     return res.json({
       ok: true,
-      status: paid ? "PAID" : "PENDING",
-      raw: paid ? undefined : undefined, // keep clean
+      status: paid ? "PAID" : "PENDING"
     });
   } catch (err) {
     console.error("check-payment error:", err.response?.data || err.message || err);

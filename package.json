@@ -1,16 +1,10 @@
 {
-  "name": "bakong-backend",
-  "version": "1.0.0",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
+  "name": "coffee-qrkh",
+  "private": true,
+  "type": "commonjs",
   "dependencies": {
     "axios": "^1.7.0",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.0",
-    "express": "^4.19.0",
-    "qrcode": "^1.5.3",
-    "bakong-khqr": "^1.0.20"
+    "bakong-khqr": "^1.0.20",
+    "qrcode": "^1.5.3"
   }
 }

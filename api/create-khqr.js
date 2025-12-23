@@ -1,4 +1,3 @@
-// api/create-khqr.js
 const QRCode = require("qrcode");
 const { BakongKHQR, khqrData, IndividualInfo } = require("bakong-khqr");
 
@@ -15,7 +14,7 @@ function generateOrderId() {
 }
 
 module.exports = async function handler(req, res) {
-  // CORS (optional if same domain)
+  // CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
@@ -41,7 +40,7 @@ module.exports = async function handler(req, res) {
     if (!BAKONG_ACCOUNT_ID || !BAKONG_ACCOUNT_ID.includes("@")) {
       return res.status(500).json({
         ok: false,
-        error: "BAKONG_ACCOUNT_ID not set correctly (e.g. yourid@aclb)",
+        error: "BAKONG_ACCOUNT_ID not set correctly (e.g. yourid@aclb)"
       });
     }
 
@@ -59,7 +58,7 @@ module.exports = async function handler(req, res) {
       billNumber: orderId,
       purposeOfTransaction: "Cafe order",
       storeLabel: MERCHANT_NAME,
-      expirationTimestamp,
+      expirationTimestamp
     };
 
     const individualInfo = new IndividualInfo(
@@ -76,7 +75,7 @@ module.exports = async function handler(req, res) {
       return res.status(500).json({
         ok: false,
         error: "Failed to generate KHQR",
-        detail: result?.status?.message || null,
+        detail: result?.status?.message || null
       });
     }
 
@@ -90,8 +89,8 @@ module.exports = async function handler(req, res) {
       orderId,
       amount,
       currency: currencyCode,
-      md5,      // ✅ IMPORTANT: return md5 (no in-memory store needed)
-      qrImage,
+      md5,
+      qrImage
     });
   } catch (err) {
     console.error("create-khqr error:", err);
