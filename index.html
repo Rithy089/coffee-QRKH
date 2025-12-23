@@ -2,413 +2,1017 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Bakong Cafe – Smart QR Payment</title>
+    <title>CVG Smart Cafe – Bakong KHQR</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <style>
+      :root {
+        --bg1: #fbfbff;
+        --bg2: #f6f3ff;
+        --card: rgba(255, 255, 255, 0.82);
+        --text: #0f172a;
+        --muted: #64748b;
+        --border: rgba(15, 23, 42, 0.08);
+        --shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+        --radius: 20px;
+
+        --primary1: #6d28d9; /* violet */
+        --primary2: #2563eb; /* blue */
+        --primary3: #22c55e; /* green */
+        --danger: #ef4444;
+
+        --soft: rgba(15, 23, 42, 0.04);
+        --pill: rgba(255, 255, 255, 0.7);
+      }
+
       * {
         box-sizing: border-box;
       }
 
       body {
         margin: 0;
-        font-family: system-ui, sans-serif;
-        background: linear-gradient(180deg, #f8f4f0, #f1ece7);
-        color: #222;
+        color: var(--text);
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
+          Arial;
+        background: radial-gradient(
+            800px 400px at 15% 10%,
+            rgba(109, 40, 217, 0.18),
+            transparent 60%
+          ),
+          radial-gradient(
+            700px 380px at 85% 0%,
+            rgba(37, 99, 235, 0.16),
+            transparent 55%
+          ),
+          linear-gradient(180deg, var(--bg1), var(--bg2));
       }
 
       .container {
-        max-width: 1100px;
-        margin: auto;
+        max-width: 1150px;
+        margin: 0 auto;
         padding: 18px;
       }
 
-      h1 {
-        text-align: center;
-        margin-bottom: 6px;
-        font-size: 28px;
+      /* ===== Topbar ===== */
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+      .brand {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .logo {
+        width: 46px;
+        height: 46px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, var(--primary1), var(--primary2));
+        box-shadow: 0 18px 35px rgba(109, 40, 217, 0.35);
+        display: grid;
+        place-items: center;
+        color: white;
+        font-size: 20px;
+      }
+      .brand-title {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .brand-title h1 {
+        margin: 0;
+        font-size: 18px;
+        letter-spacing: -0.2px;
+      }
+      .brand-title p {
+        margin: 0;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .pill {
+        padding: 10px 12px;
+        border-radius: 999px;
+        background: var(--pill);
+        border: 1px solid var(--border);
+        box-shadow: 0 16px 30px rgba(15, 23, 42, 0.06);
+        font-size: 12px;
+        color: #0f172a;
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        white-space: nowrap;
+      }
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
       }
 
-      .subtitle {
-        text-align: center;
-        font-size: 14px;
-        color: #666;
-        margin-bottom: 20px;
-      }
-
+      /* ===== Layout (POS style) ===== */
       .layout {
         display: grid;
-        grid-template-columns: 1.4fr 1fr;
-        gap: 18px;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 16px;
       }
-
-      @media (max-width: 768px) {
+      @media (max-width: 950px) {
         .layout {
           grid-template-columns: 1fr;
         }
+        .pill {
+          display: none;
+        }
       }
 
+      /* ===== Card ===== */
       .card {
-        background: white;
-        border-radius: 16px;
-        padding: 16px;
-        box-shadow: 0 10px 26px rgba(0, 0, 0, 0.07);
+        background: var(--card);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        border-radius: var(--radius);
+        padding: 14px;
+        backdrop-filter: blur(10px);
+      }
+      .card-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .card-head h2 {
+        margin: 0;
+        font-size: 16px;
+        letter-spacing: -0.2px;
+      }
+      .hint {
+        font-size: 12px;
+        color: var(--muted);
       }
 
-      h2 {
-        margin: 0 0 12px;
-        font-size: 20px;
-      }
-
-      /* ===== MENU GRID ===== */
+      /* ===== Menu grid ===== */
       .menu-grid {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 14px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
       }
-
-      .item-card {
-        border-radius: 14px;
-        background: #fafafa;
+      @media (max-width: 520px) {
+        .menu-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .item {
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.78);
+        border: 1px solid rgba(15, 23, 42, 0.07);
         overflow: hidden;
         display: flex;
         gap: 10px;
         padding: 10px;
-        border: 1px solid #eee;
+        transition: transform 0.12s ease, box-shadow 0.12s ease;
       }
-
-      .item-card img {
-        width: 70px;
-        height: 70px;
-        border-radius: 10px;
+      .item:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 16px 28px rgba(15, 23, 42, 0.08);
+      }
+      .item img {
+        width: 78px;
+        height: 78px;
+        border-radius: 16px;
         object-fit: cover;
+        flex: 0 0 auto;
+        background: #e2e8f0;
       }
-
       .item-info {
         flex: 1;
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        min-width: 0;
+        gap: 6px;
       }
-
       .item-name {
-        font-weight: 600;
         font-size: 14px;
+        font-weight: 800;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+      .item-sub {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .price {
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 700;
       }
 
-      .item-price {
-        font-size: 13px;
-        color: #666;
-      }
-
-      .qty-controls {
+      .qty {
+        margin-top: auto;
         display: flex;
         align-items: center;
         gap: 8px;
-        margin-top: auto;
       }
-
-      .qty-btn {
-        width: 26px;
-        height: 26px;
+      .btn-round {
+        width: 34px;
+        height: 34px;
         border-radius: 999px;
-        border: 1px solid #ccc;
+        border: 1px solid rgba(15, 23, 42, 0.12);
         background: white;
         cursor: pointer;
+        font-weight: 900;
+        line-height: 1;
+        display: grid;
+        place-items: center;
       }
-
-      .qty-value {
-        min-width: 18px;
+      .btn-round:active {
+        transform: scale(0.98);
+      }
+      .btn-round:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .qty-val {
+        min-width: 24px;
         text-align: center;
-        font-size: 14px;
+        font-weight: 900;
       }
 
-      /* ===== CART ===== */
-      .cart-line {
+      /* ===== Right side (order summary) ===== */
+      .summary-top {
+        display: grid;
+        gap: 10px;
+      }
+      .kpi {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .kpi .box {
+        border-radius: 18px;
+        border: 1px solid rgba(15, 23, 42, 0.07);
+        background: rgba(255, 255, 255, 0.72);
+        padding: 12px;
+      }
+      .kpi .label {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .kpi .value {
+        font-size: 18px;
+        font-weight: 1000;
+        margin-top: 4px;
+        letter-spacing: -0.4px;
+      }
+
+      .order-lines {
+        border-top: 1px dashed rgba(15, 23, 42, 0.14);
+        margin-top: 10px;
+        padding-top: 10px;
+        display: grid;
+        gap: 8px;
+      }
+      .line {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 6px;
-        font-size: 14px;
+        gap: 10px;
+        font-size: 13px;
+      }
+      .line .left {
+        min-width: 0;
+        color: #0f172a;
+      }
+      .line .left b {
+        font-weight: 900;
+      }
+      .line .right {
+        font-weight: 800;
+      }
+      .total {
+        margin-top: 6px;
+        padding-top: 10px;
+        border-top: 1px dashed rgba(15, 23, 42, 0.16);
+        font-weight: 1000;
       }
 
-      .cart-total {
-        font-weight: 700;
-        border-top: 1px dashed #ddd;
-        padding-top: 8px;
-        margin-top: 8px;
-      }
-
+      /* ===== Buttons ===== */
       .actions {
         margin-top: 12px;
         display: flex;
         gap: 10px;
         flex-wrap: wrap;
       }
-
-      .btn-primary {
-        background: #2c2c2c;
-        color: white;
-        border-radius: 999px;
+      .btn {
         border: none;
-        padding: 8px 18px;
+        border-radius: 999px;
+        padding: 12px 16px;
+        font-weight: 900;
+        font-size: 13px;
         cursor: pointer;
       }
-
-      .btn-secondary {
-        background: #eaeaea;
-        border-radius: 999px;
-        border: none;
-        padding: 8px 16px;
-        cursor: pointer;
+      .btn-primary {
+        color: white;
+        background: linear-gradient(135deg, var(--primary1), var(--primary2));
+        box-shadow: 0 16px 30px rgba(37, 99, 235, 0.22);
+      }
+      .btn-primary:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+        box-shadow: none;
+      }
+      .btn-soft {
+        background: rgba(15, 23, 42, 0.06);
+        color: #0f172a;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+      }
+      .btn-danger {
+        background: rgba(239, 68, 68, 0.1);
+        color: #991b1b;
+        border: 1px solid rgba(239, 68, 68, 0.25);
       }
 
       /* ===== QR ===== */
-      .qr-box {
+      .payCard {
+        margin-top: 10px;
+        border-radius: 22px;
+        border: 1px solid rgba(15, 23, 42, 0.07);
+        background: rgba(255, 255, 255, 0.75);
+        padding: 12px;
+        display: grid;
+        gap: 10px;
+      }
+      .qrWrap {
+        display: none;
+        place-items: center;
         text-align: center;
-        margin-top: 6px;
+        gap: 8px;
       }
-
-      .qr-box img {
-        width: 200px;
-        height: 200px;
-        border-radius: 12px;
-        border: 2px dashed #ccc;
-        padding: 8px;
-        background: #fafafa;
+      .amountBig {
+        font-size: 22px;
+        font-weight: 1000;
+        letter-spacing: -0.4px;
       }
-
-      .pay-amount {
-        font-size: 20px;
-        font-weight: 700;
-        margin: 10px 0 6px;
+      .qrWrap img {
+        width: 220px;
+        height: 220px;
+        border-radius: 18px;
+        border: 2px dashed rgba(15, 23, 42, 0.22);
+        padding: 10px;
+        background: rgba(15, 23, 42, 0.03);
       }
 
       .status {
-        font-size: 13px;
-        margin-top: 8px;
-        display: inline-block;
-        padding: 4px 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        justify-content: center;
+        padding: 8px 12px;
         border-radius: 999px;
+        font-size: 12px;
+        font-weight: 900;
       }
-
       .pending {
-        background: #fff3cd;
+        background: rgba(245, 158, 11, 0.12);
         color: #92400e;
+        border: 1px solid rgba(245, 158, 11, 0.25);
+      }
+      .paid {
+        background: rgba(34, 197, 94, 0.12);
+        color: #065f46;
+        border: 1px solid rgba(34, 197, 94, 0.25);
+      }
+      .error {
+        background: rgba(239, 68, 68, 0.12);
+        color: #991b1b;
+        border: 1px solid rgba(239, 68, 68, 0.25);
       }
 
-      .paid {
-        background: #dcfce7;
-        color: #027a48;
+      /* ===== Paid overlay ===== */
+      .overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(2, 6, 23, 0.45);
+        display: none;
+        place-items: center;
+        padding: 18px;
+        z-index: 999;
+      }
+      .overlay .modal {
+        width: min(520px, 100%);
+        border-radius: 26px;
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow: 0 30px 80px rgba(2, 6, 23, 0.25);
+        padding: 18px;
+        text-align: center;
+        backdrop-filter: blur(12px);
+      }
+      .check {
+        width: 70px;
+        height: 70px;
+        border-radius: 24px;
+        margin: 6px auto 10px;
+        display: grid;
+        place-items: center;
+        color: white;
+        font-size: 28px;
+        background: linear-gradient(135deg, #22c55e, #16a34a);
+        box-shadow: 0 20px 40px rgba(34, 197, 94, 0.25);
+      }
+      .modal h3 {
+        margin: 0;
+        font-size: 20px;
+        letter-spacing: -0.4px;
+      }
+      .modal p {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      /* ===== Toast ===== */
+      .toast {
+        position: fixed;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 10px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid rgba(15, 23, 42, 0.12);
+        box-shadow: 0 22px 60px rgba(2, 6, 23, 0.18);
+        display: none;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 900;
+        z-index: 1000;
+      }
+
+      .footer {
+        text-align: center;
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 12px;
       }
     </style>
   </head>
 
   <body>
     <div class="container">
-      <h1>☕ CVG Smart Cafe</h1>
-      <div class="subtitle">
-        Add items → Generate Bakong QR → Customer scans & pays
+      <div class="topbar">
+        <div class="brand">
+          <div class="logo">☕</div>
+          <div class="brand-title">
+            <h1>CVG Smart Cafe</h1>
+            <p>Small order screen • Fast payment with Bakong KHQR</p>
+          </div>
+        </div>
       </div>
 
       <div class="layout">
-        <!-- ================= LEFT: MENU ================= -->
+        <!-- LEFT: MENU -->
         <div class="card">
-          <h2>Menu</h2>
-          <div class="menu-grid" id="menuGrid"></div>
-
-          <h2 style="margin-top: 16px;">Cart</h2>
-          <div id="cart"></div>
-
-          <div class="actions">
-            <button class="btn-primary" onclick="generateKHQR()">
-              ⚡ Generate KHQR
-            </button>
-            <button class="btn-secondary" onclick="clearCart()">
-              🧹 Clear
-            </button>
+          <div class="card-head">
+            <h2>Quick Menu</h2>
+            <div class="hint">Tap + to add</div>
           </div>
+          <div class="menu-grid" id="menuGrid"></div>
+          <div class="footer">Tip: Put this on a tablet at cashier.</div>
         </div>
 
-        <!-- ================= RIGHT: PAYMENT ================= -->
+        <!-- RIGHT: ORDER + PAYMENT -->
         <div class="card">
-          <h2>Bakong Payment</h2>
-
-          <div id="paymentBox">
-            <p style="font-size: 13px; color: #666;">
-              Generate KHQR to show to customer
-            </p>
+          <div class="card-head">
+            <h2>Order</h2>
+            <div class="hint" id="cartHint">0 items</div>
           </div>
 
-          <div class="qr-box" id="qrBox" style="display: none;">
-            <div class="pay-amount" id="payAmount">$0.00</div>
-            <img id="qrImg" src="" />
-            <div class="status pending" id="payStatus">
-              ⏳ Waiting for payment...
+          <div class="summary-top">
+            <div class="kpi">
+              <div class="box">
+                <div class="label">Items</div>
+                <div class="value" id="kpiItems">0</div>
+              </div>
+              <div class="box">
+                <div class="label">Total</div>
+                <div class="value" id="kpiTotal">$0.00</div>
+              </div>
+            </div>
+
+            <div class="order-lines" id="cartLines"></div>
+
+            <div class="actions">
+              <button class="btn btn-primary" id="btnPay" type="button">
+                ⚡ Generate KHQR
+              </button>
+              <button class="btn btn-soft" id="btnClear" type="button">
+                🧹 Clear
+              </button>
+              <button class="btn btn-soft" id="btnNotify" type="button">
+                🔔 Enable Alert
+              </button>
+            </div>
+
+            <div class="payCard">
+              <div class="hint" id="paymentText">
+                Generate KHQR to show customer.
+              </div>
+
+              <div class="qrWrap" id="qrWrap">
+                <div class="amountBig" id="payAmount">$0.00</div>
+                <img id="qrImg" alt="Bakong KHQR" />
+                <div class="status pending" id="payStatus">
+                  ⏳ Waiting for payment...
+                </div>
+
+                <div class="actions" style="justify-content: center;">
+                  <button class="btn btn-soft" id="btnStop" type="button">
+                    ⏹ Stop checking
+                  </button>
+                  <button class="btn btn-danger" id="btnNew" type="button">
+                    🧾 New payment
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="footer">
+              When paid → you will get alert + success screen.
             </div>
           </div>
         </div>
       </div>
     </div>
 
+    <!-- Paid overlay -->
+    <div class="overlay" id="overlay">
+      <div class="modal">
+        <div class="check">✓</div>
+        <h3>Payment Received</h3>
+        <p id="paidInfo">Thank you!</p>
+
+        <div class="actions" style="justify-content: center; margin-top: 14px;">
+          <button class="btn btn-primary" id="btnDone" type="button">
+            ✅ Done
+          </button>
+          <button class="btn btn-soft" id="btnKeep" type="button">
+            Keep order
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">✅ Payment received</div>
+
     <script>
+      "use strict";
+
       // ================= CONFIG =================
-      const API_BASE = "https://bakong-backend-s407.onrender.com"; // change to Render later
+      const API_BASE = "http://localhost:4000"; // change to Render later
+      // document.getElementById("apiBaseLabel").textContent = API_BASE;
 
       // ================= MENU DATA =================
       const menu = [
         {
           id: 1,
           name: "Iced Black Coffee",
-          price: 1.5,
-          img: "https://images.unsplash.com/photo-1511920170033-f8396924c348",
+          price: 0.01,
+          img: "https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&w=400&q=60",
         },
         {
           id: 2,
           name: "Hot Latte",
           price: 2.0,
-          img: "https://images.unsplash.com/photo-1509042239860-f550ce710b93",
+          img: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=400&q=60",
         },
         {
           id: 3,
           name: "Milk Tea",
           price: 2.3,
-          img: "https://images.unsplash.com/photo-1541167760496-1628856ab772",
+          img: "https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&w=400&q=60",
         },
         {
           id: 4,
           name: "Lemon Tea",
           price: 1.8,
-          img: "https://images.unsplash.com/photo-1556679343-c7306c1976bc",
+          img: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?auto=format&fit=crop&w=400&q=60",
         },
       ];
 
-      const cart = {};
+      // cart: { [id]: qty }
+      const cart = Object.create(null);
 
+      // ================= DOM =================
       const menuGrid = document.getElementById("menuGrid");
-      const cartEl = document.getElementById("cart");
-      const qrBox = document.getElementById("qrBox");
+      const cartLines = document.getElementById("cartLines");
+      const cartHint = document.getElementById("cartHint");
+      const kpiItems = document.getElementById("kpiItems");
+      const kpiTotal = document.getElementById("kpiTotal");
+
+      const btnPay = document.getElementById("btnPay");
+      const btnClear = document.getElementById("btnClear");
+      const btnNotify = document.getElementById("btnNotify");
+
+      const paymentText = document.getElementById("paymentText");
+      const qrWrap = document.getElementById("qrWrap");
       const qrImg = document.getElementById("qrImg");
       const payAmount = document.getElementById("payAmount");
       const payStatus = document.getElementById("payStatus");
+      const btnStop = document.getElementById("btnStop");
+      const btnNew = document.getElementById("btnNew");
 
+      const overlay = document.getElementById("overlay");
+      const paidInfo = document.getElementById("paidInfo");
+      const btnDone = document.getElementById("btnDone");
+      const btnKeep = document.getElementById("btnKeep");
+
+      const toast = document.getElementById("toast");
+
+      // ================= STATE =================
+      let isGenerating = false;
       let orderId = null;
       let pollTimer = null;
+      let notifyEnabled = false;
 
-      // ================= RENDER MENU =================
+      const money = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+      });
+
+      function escapeHtml(str) {
+        return String(str)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function showToast(msg) {
+        toast.textContent = msg;
+        toast.style.display = "flex";
+        clearTimeout(showToast._t);
+        showToast._t = setTimeout(() => (toast.style.display = "none"), 2600);
+      }
+
+      function setStatus(type, text) {
+        payStatus.className = "status " + type;
+        payStatus.textContent = text;
+      }
+
+      function stopPolling() {
+        if (pollTimer) clearInterval(pollTimer);
+        pollTimer = null;
+      }
+
+      function resetPaymentUI() {
+        stopPolling();
+        orderId = null;
+        qrImg.removeAttribute("src");
+        qrWrap.style.display = "none";
+        paymentText.textContent = "Generate KHQR to show customer.";
+        setStatus("pending", "⏳ Waiting for payment...");
+      }
+
+      // ===== Alerts =====
+      async function enableAlerts() {
+        // Ask notification permission (optional)
+        if ("Notification" in window) {
+          try {
+            const res = await Notification.requestPermission();
+            if (res === "granted") {
+              notifyEnabled = true;
+              showToast("🔔 Alerts enabled");
+              btnNotify.textContent = "🔔 Alerts ON";
+              return;
+            }
+          } catch (e) {}
+        }
+        // still allow sound/vibrate without notification
+        notifyEnabled = true;
+        btnNotify.textContent = "🔔 Alerts ON";
+        showToast("🔔 Alerts enabled (sound/vibrate)");
+      }
+
+      function beep() {
+        // WebAudio beep (needs user interaction first → we call from button click)
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.type = "sine";
+          o.frequency.value = 880;
+          g.gain.value = 0.0001;
+          o.connect(g);
+          g.connect(ctx.destination);
+          o.start();
+
+          // small envelope
+          g.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
+
+          setTimeout(() => {
+            o.stop();
+            ctx.close();
+          }, 300);
+        } catch (e) {}
+      }
+
+      function vibrate() {
+        if (navigator.vibrate) {
+          navigator.vibrate([80, 60, 140]);
+        }
+      }
+
+      function notifyPaid(title, body) {
+        if (notifyEnabled) {
+          beep();
+          vibrate();
+          showToast("✅ Payment received!");
+          if ("Notification" in window && Notification.permission === "granted") {
+            try {
+              new Notification(title, { body });
+            } catch (e) {}
+          }
+        }
+      }
+
+      function showPaidOverlay(amountText) {
+        paidInfo.textContent = `Paid amount: ${amountText}`;
+        overlay.style.display = "grid";
+      }
+
+      function hideOverlay() {
+        overlay.style.display = "none";
+      }
+
+      // ================= CART HELPERS =================
+      function getLines() {
+        const out = [];
+        for (const idStr of Object.keys(cart)) {
+          const id = Number(idStr);
+          const qty = cart[id];
+          const item = menu.find((m) => m.id === id);
+          if (!item) continue;
+          out.push({
+            id,
+            name: item.name,
+            qty,
+            price: item.price,
+            lineTotal: item.price * qty,
+          });
+        }
+        return out;
+      }
+
+      function getCount() {
+        return Object.values(cart).reduce((a, b) => a + b, 0);
+      }
+
+      function getTotal() {
+        return getLines().reduce((sum, l) => sum + l.lineTotal, 0);
+      }
+
+      // ================= RENDER =================
       function renderMenu() {
         menuGrid.innerHTML = "";
-        menu.forEach((item) => {
-          menuGrid.innerHTML += `
-            <div class="item-card">
-              <img src="${item.img}" />
-              <div class="item-info">
-                <div class="item-name">${item.name}</div>
-                <div class="item-price">$${item.price.toFixed(2)}</div>
-                <div class="qty-controls">
-                  <button class="qty-btn" onclick="remove(${item.id})">−</button>
-                  <div class="qty-value">${cart[item.id] || 0}</div>
-                  <button class="qty-btn" onclick="add(${item.id})">+</button>
-                </div>
+        for (const item of menu) {
+          const qty = cart[item.id] || 0;
+
+          const el = document.createElement("div");
+          el.className = "item";
+
+          const img = document.createElement("img");
+          img.loading = "lazy";
+          img.alt = item.name;
+          img.src = item.img;
+          img.onerror = () => {
+            img.src =
+              "data:image/svg+xml;charset=utf-8," +
+              encodeURIComponent(
+                `<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160">
+                  <rect width="100%" height="100%" fill="#e2e8f0"/>
+                  <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#64748b" font-family="Arial" font-size="12">
+                    No Image
+                  </text>
+                </svg>`
+              );
+          };
+
+          const info = document.createElement("div");
+          info.className = "item-info";
+
+          const name = document.createElement("div");
+          name.className = "item-name";
+          name.textContent = item.name;
+
+          const sub = document.createElement("div");
+          sub.className = "item-sub";
+
+          const price = document.createElement("div");
+          price.className = "price";
+          price.textContent = money.format(item.price);
+
+          sub.appendChild(price);
+
+          const qtyRow = document.createElement("div");
+          qtyRow.className = "qty";
+
+          const minus = document.createElement("button");
+          minus.className = "btn-round";
+          minus.type = "button";
+          minus.textContent = "−";
+          minus.disabled = qty <= 0;
+          minus.addEventListener("click", () => remove(item.id));
+
+          const val = document.createElement("div");
+          val.className = "qty-val";
+          val.textContent = String(qty);
+
+          const plus = document.createElement("button");
+          plus.className = "btn-round";
+          plus.type = "button";
+          plus.textContent = "+";
+          plus.addEventListener("click", () => add(item.id));
+
+          qtyRow.appendChild(minus);
+          qtyRow.appendChild(val);
+          qtyRow.appendChild(plus);
+
+          info.appendChild(name);
+          info.appendChild(sub);
+          info.appendChild(qtyRow);
+
+          el.appendChild(img);
+          el.appendChild(info);
+
+          menuGrid.appendChild(el);
+        }
+      }
+
+      function renderCart() {
+        const lines = getLines();
+        const count = getCount();
+        const total = getTotal();
+
+        cartHint.textContent = `${count} item${count === 1 ? "" : "s"}`;
+        kpiItems.textContent = String(count);
+        kpiTotal.textContent = money.format(total);
+
+        cartLines.innerHTML = "";
+
+        if (lines.length === 0) {
+          cartLines.innerHTML = `<div class="hint">Cart empty. Add items from menu.</div>`;
+        } else {
+          for (const l of lines) {
+            cartLines.innerHTML += `
+              <div class="line">
+                <div class="left"><b>${escapeHtml(l.name)}</b> × ${l.qty}</div>
+                <div class="right">${money.format(l.lineTotal)}</div>
               </div>
+            `;
+          }
+          cartLines.innerHTML += `
+            <div class="line total">
+              <div class="left">Total</div>
+              <div class="right">${money.format(total)}</div>
             </div>
           `;
-        });
+        }
+
+        btnPay.disabled = lines.length === 0 || isGenerating;
+        btnClear.disabled = lines.length === 0;
       }
 
       function add(id) {
         cart[id] = (cart[id] || 0) + 1;
-        updateCart();
         renderMenu();
+        renderCart();
       }
 
       function remove(id) {
         if (cart[id]) cart[id]--;
         if (cart[id] <= 0) delete cart[id];
-        updateCart();
         renderMenu();
-      }
-
-      function updateCart() {
-        let total = 0;
-        cartEl.innerHTML = "";
-
-        Object.keys(cart).forEach((id) => {
-          const item = menu.find((m) => m.id == id);
-          const qty = cart[id];
-          const line = item.price * qty;
-          total += line;
-
-          cartEl.innerHTML += `
-            <div class="cart-line">
-              <span>${item.name} × ${qty}</span>
-              <span>$${line.toFixed(2)}</span>
-            </div>
-          `;
-        });
-
-        cartEl.innerHTML += `
-          <div class="cart-line cart-total">
-            <span>Total</span>
-            <span>$${total.toFixed(2)}</span>
-          </div>
-        `;
-
-        renderMenu();
+        renderCart();
       }
 
       function clearCart() {
-        for (let k in cart) delete cart[k];
-        updateCart();
-        renderMenu(); 
-        qrBox.style.display = "none";
+        for (const k in cart) delete cart[k];
+        resetPaymentUI();
+        renderMenu();
+        renderCart();
       }
 
-      // ================= GENERATE KHQR =================
+      // ================= KHQR =================
       async function generateKHQR() {
-        let total = 0;
-        Object.keys(cart).forEach((id) => {
-          const item = menu.find((m) => m.id == id);
-          total += item.price * cart[id];
-        });
+        const total = getTotal();
+        if (total <= 0) return;
 
-        if (total <= 0) return alert("Cart empty");
+        isGenerating = true;
+        renderCart();
 
-        const res = await fetch(`${API_BASE}/api/create-khqr`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ amount: total, currency: "USD" }),
-        });
+        paymentText.textContent = "Generating KHQR...";
+        qrWrap.style.display = "none";
+        setStatus("pending", "⏳ Waiting for payment...");
 
-        const data = await res.json();
-        if (!data.ok) return alert("Failed to generate KHQR");
+        // Ensure sound works later (user gesture)
+        if (notifyEnabled) beep();
 
-        orderId = data.orderId;
-        qrImg.src = data.qrImage;
-        payAmount.innerText = `$${data.amount.toFixed(2)}`;
-        qrBox.style.display = "block";
-        payStatus.innerText = "⏳ Waiting for payment...";
+        try {
+          const res = await fetch(`${API_BASE}/api/create-khqr`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ amount: total, currency: "USD" }),
+          });
 
-        clearInterval(pollTimer);
-        pollTimer = setInterval(checkPayment, 3000);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+          const data = await res.json();
+          if (!data?.ok) throw new Error(data?.error || "Failed to generate KHQR");
+
+          orderId = data.orderId;
+          qrImg.src = data.qrImage;
+          payAmount.textContent = money.format(data.amount);
+          qrWrap.style.display = "grid";
+          paymentText.textContent = "Customer scans and pays with Bakong.";
+
+          stopPolling();
+          pollTimer = setInterval(checkPayment, 3000);
+        } catch (err) {
+          paymentText.textContent = "❌ Failed to generate KHQR. Try again.";
+          setStatus("error", "Error generating KHQR");
+          console.error(err);
+          showToast("❌ KHQR failed");
+        } finally {
+          isGenerating = false;
+          renderCart();
+        }
       }
 
       async function checkPayment() {
         if (!orderId) return;
+        try {
+          const res = await fetch(`${API_BASE}/api/check-payment/${orderId}`);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
 
-        const res = await fetch(
-          `${API_BASE}/api/check-payment/${orderId}`
-        );
-        const data = await res.json();
+          if (data.status === "PAID") {
+            setStatus("paid", "✅ Paid");
+            stopPolling();
 
-        if (data.status === "PAID") {
-          payStatus.innerText = "✅ Payment Paid";
-          payStatus.className = "status paid";
-          clearInterval(pollTimer);
+            const amountText = payAmount.textContent || "Paid";
+            notifyPaid("Payment Received ✅", `Amount: ${amountText}`);
+            showPaidOverlay(amountText);
+          }
+        } catch (err) {
+          // keep polling, but show a gentle message
+          setStatus("pending", "⏳ Checking... (network)");
+          console.warn(err);
         }
       }
 
+      // ================= EVENTS =================
+      btnPay.addEventListener("click", generateKHQR);
+      btnClear.addEventListener("click", clearCart);
+      btnNotify.addEventListener("click", enableAlerts);
+
+      btnStop.addEventListener("click", () => {
+        stopPolling();
+        setStatus("pending", "⏸ Checking stopped");
+        paymentText.textContent = "Auto-check stopped. You can generate again.";
+        showToast("⏸ Auto-check stopped");
+      });
+
+      btnNew.addEventListener("click", () => {
+        resetPaymentUI();
+        showToast("🧾 New payment ready");
+      });
+
+      btnDone.addEventListener("click", () => {
+        hideOverlay();
+        clearCart(); // typical POS flow
+        showToast("✅ Completed");
+      });
+
+      btnKeep.addEventListener("click", () => {
+        hideOverlay();
+        showToast("📌 Kept order");
+      });
+
+      // Click outside modal to close
+      overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) hideOverlay();
+      });
+
+      // ================= INIT =================
       renderMenu();
-      updateCart();
+      renderCart();
     </script>
   </body>
 </html>
