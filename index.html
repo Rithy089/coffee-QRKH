@@ -18,10 +18,8 @@
 
         --primary1: #6d28d9; /* violet */
         --primary2: #2563eb; /* blue */
-        --primary3: #22c55e; /* green */
         --danger: #ef4444;
 
-        --soft: rgba(15, 23, 42, 0.04);
         --pill: rgba(255, 255, 255, 0.7);
       }
 
@@ -92,23 +90,6 @@
         font-size: 12px;
         color: var(--muted);
       }
-      .pill {
-        padding: 10px 12px;
-        border-radius: 999px;
-        background: var(--pill);
-        border: 1px solid var(--border);
-        box-shadow: 0 16px 30px rgba(15, 23, 42, 0.06);
-        font-size: 12px;
-        color: #0f172a;
-        display: flex;
-        gap: 6px;
-        align-items: center;
-        white-space: nowrap;
-      }
-      .mono {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          "Liberation Mono", "Courier New", monospace;
-      }
 
       /* ===== Layout (POS style) ===== */
       .layout {
@@ -119,9 +100,6 @@
       @media (max-width: 950px) {
         .layout {
           grid-template-columns: 1fr;
-        }
-        .pill {
-          display: none;
         }
       }
 
@@ -573,8 +551,8 @@
       "use strict";
 
       // ================= CONFIG =================
-      const API_BASE = "https://coffee-qrkh.vercel.app/"; // change to Render later
-      // document.getElementById("apiBaseLabel").textContent = API_BASE;
+      // ✅ Vercel-friendly: same domain calls (/api/...)
+      const API_BASE = "";
 
       // ================= MENU DATA =================
       const menu = [
@@ -636,6 +614,7 @@
       // ================= STATE =================
       let isGenerating = false;
       let orderId = null;
+      let currentMd5 = null; // ✅ Vercel-safe (stateless payment check)
       let pollTimer = null;
       let notifyEnabled = false;
 
@@ -673,6 +652,7 @@
       function resetPaymentUI() {
         stopPolling();
         orderId = null;
+        currentMd5 = null;
         qrImg.removeAttribute("src");
         qrWrap.style.display = "none";
         paymentText.textContent = "Generate KHQR to show customer.";
@@ -681,7 +661,6 @@
 
       // ===== Alerts =====
       async function enableAlerts() {
-        // Ask notification permission (optional)
         if ("Notification" in window) {
           try {
             const res = await Notification.requestPermission();
@@ -693,14 +672,12 @@
             }
           } catch (e) {}
         }
-        // still allow sound/vibrate without notification
         notifyEnabled = true;
         btnNotify.textContent = "🔔 Alerts ON";
         showToast("🔔 Alerts enabled (sound/vibrate)");
       }
 
       function beep() {
-        // WebAudio beep (needs user interaction first → we call from button click)
         try {
           const ctx = new (window.AudioContext || window.webkitAudioContext)();
           const o = ctx.createOscillator();
@@ -712,7 +689,6 @@
           g.connect(ctx.destination);
           o.start();
 
-          // small envelope
           g.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime + 0.02);
           g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
 
@@ -724,21 +700,18 @@
       }
 
       function vibrate() {
-        if (navigator.vibrate) {
-          navigator.vibrate([80, 60, 140]);
-        }
+        if (navigator.vibrate) navigator.vibrate([80, 60, 140]);
       }
 
       function notifyPaid(title, body) {
-        if (notifyEnabled) {
-          beep();
-          vibrate();
-          showToast("✅ Payment received!");
-          if ("Notification" in window && Notification.permission === "granted") {
-            try {
-              new Notification(title, { body });
-            } catch (e) {}
-          }
+        if (!notifyEnabled) return;
+        beep();
+        vibrate();
+        showToast("✅ Payment received!");
+        if ("Notification" in window && Notification.permission === "granted") {
+          try {
+            new Notification(title, { body });
+          } catch (e) {}
         }
       }
 
@@ -921,7 +894,6 @@
         qrWrap.style.display = "none";
         setStatus("pending", "⏳ Waiting for payment...");
 
-        // Ensure sound works later (user gesture)
         if (notifyEnabled) beep();
 
         try {
@@ -936,7 +908,9 @@
           const data = await res.json();
           if (!data?.ok) throw new Error(data?.error || "Failed to generate KHQR");
 
-          orderId = data.orderId;
+          orderId = data.orderId || null;
+          currentMd5 = data.md5 || null; // ✅ save md5 for stateless checks
+
           qrImg.src = data.qrImage;
           payAmount.textContent = money.format(data.amount);
           qrWrap.style.display = "grid";
@@ -955,10 +929,16 @@
         }
       }
 
+      // ✅ Vercel-safe: check payment by md5 (POST /api/check-payment)
       async function checkPayment() {
-        if (!orderId) return;
+        if (!currentMd5) return;
         try {
-          const res = await fetch(`${API_BASE}/api/check-payment/${orderId}`);
+          const res = await fetch(`${API_BASE}/api/check-payment`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ md5: currentMd5 }),
+          });
+
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
 
@@ -971,7 +951,6 @@
             showPaidOverlay(amountText);
           }
         } catch (err) {
-          // keep polling, but show a gentle message
           setStatus("pending", "⏳ Checking... (network)");
           console.warn(err);
         }
@@ -996,7 +975,7 @@
 
       btnDone.addEventListener("click", () => {
         hideOverlay();
-        clearCart(); // typical POS flow
+        clearCart();
         showToast("✅ Completed");
       });
 
@@ -1005,7 +984,6 @@
         showToast("📌 Kept order");
       });
 
-      // Click outside modal to close
       overlay.addEventListener("click", (e) => {
         if (e.target === overlay) hideOverlay();
       });
